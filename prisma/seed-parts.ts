@@ -1,5 +1,6 @@
-const { prismaClient: prismaClientFromClient } = require('./client');
-const prismaClient = new PrismaClient()
+const { PrismaClient } = require('@prisma/client')
+
+const prisma = new PrismaClient()
 
 const standardParts = [
   // Moteur
@@ -94,7 +95,7 @@ async function main() {
   console.log('Seeding default parts...')
 
   for (const part of standardParts) {
-    await prismaClientFromClient.defaultPart.upsert({
+    await prisma.defaultPart.upsert({
       where: {
         name: part.name,
       },
@@ -117,5 +118,5 @@ main()
     process.exit(1)
   })
   .finally(async () => {
-    await prismaClientFromClient.$disconnect()
+    await prisma.$disconnect()
   })

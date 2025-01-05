@@ -1,26 +1,19 @@
+// app/layout.tsx
+'use client'
+
 import './globals.css'
-import { Inter } from 'next/font/google'
-import MobileNav from '@/components/layout/MobileNav'
+import AppLayout from '@/components/layout/AppLayout'
+import NextAuthProvider from "@/components/providers/SessionProvider"
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata = {
-  title: 'CarCheck',
-  description: 'Application de suivi des véhicules',
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children, title, showBack, action, description }) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
-        <div className="min-h-screen bg-gray-50">
-          {children}
-          <MobileNav />
-        </div>
+      <body>
+        <NextAuthProvider>
+          <AppLayout {...{ title, showBack, action, description }}>
+            {children}  {/* Les pages individuelles sont rendues ici */}
+          </AppLayout>
+        </NextAuthProvider>
       </body>
     </html>
   )

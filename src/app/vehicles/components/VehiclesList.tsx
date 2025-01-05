@@ -1,12 +1,11 @@
-import Link from 'next/link'
-import { Badge } from '@/components/ui/Badge'
-import { formatDate } from '@/lib/utils'
-import { prisma } from '@/lib/prisma'
-import { ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline'
+import Link from 'next/link';
+import { Badge } from '@/components/ui/Badge';
+import { prisma } from '@/lib/prisma';
+import { ChevronRightIcon, PlusIcon } from '@heroicons/react/24/outline';
 
 async function getVehicles() {
   try {
-    console.log('Fetching vehicles...')
+    console.log('Fetching vehicles...');
     const vehicles = await prisma.vehicle.findMany({
       orderBy: {
         createdAt: 'desc',
@@ -14,20 +13,20 @@ async function getVehicles() {
       include: {
         parts: true,
       },
-    })
-    console.log('Vehicles found:', vehicles)
-    return vehicles
+    });
+    console.log('Vehicles found:', vehicles);
+    return vehicles;
   } catch (error) {
-    console.error('Error fetching vehicles:', error)
-    return []
+    console.error('Error fetching vehicles:', error);
+    return [];
   }
 }
 
 export async function VehiclesList() {
-  const vehicles = await getVehicles()
+  const vehicles = await getVehicles();
 
   if (!vehicles || vehicles.length === 0) {
-    console.log('No vehicles found')
+    console.log('No vehicles found');
     return (
       <div className="text-center py-12">
         <h3 className="mt-2 text-sm font-semibold text-gray-900">Aucun véhicule</h3>
@@ -42,43 +41,45 @@ export async function VehiclesList() {
           </Link>
         </div>
       </div>
-    )
+    );
   }
 
-  console.log('Rendering vehicles:', vehicles.length)
+  console.log('Rendering vehicles:', vehicles.length);
   return (
     <div className="divide-y divide-gray-200">
       {vehicles.map((vehicle) => {
-        const criticalParts = vehicle.parts.filter(part => part.severity === 'critical').length
-        const status = criticalParts > 0 ? 'critical' : 'good'
-        
+        const criticalParts = vehicle.parts.filter(part => part.severity === 'critical').length;
+        const status = criticalParts > 0 ? 'critical' : 'good';
+
         return (
           <Link
             key={vehicle.id}
             href={`/vehicles/${vehicle.id}`}
             className="block hover:bg-gray-50"
           >
-            <div className="px-4 py-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">
-                    {vehicle.brand} {vehicle.model}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    {vehicle.plateNumber} • {vehicle.year} • {vehicle.mileage} km
-                  </p>
-                </div>
-                <div className="flex items-center">
-                  <Badge variant={status === 'critical' ? 'destructive' : 'default'}>
-                    {criticalParts > 0 ? `${criticalParts} pièce${criticalParts > 1 ? 's' : ''} critique${criticalParts > 1 ? 's' : ''}` : 'OK'}
-                  </Badge>
-                  <ChevronRightIcon className="ml-4 h-5 w-5 text-gray-400" />
-                </div>
+            <div className="px-4 py-4 flex items-center">
+              {vehicle.photo && (
+                <img
+                  src={vehicle.photo}
+                  alt={`${vehicle.brand} ${vehicle.affectation}`} // Utilisation de 'affectation' pour le texte alternatif
+                  className="w-16 h-16 rounded-md object-cover mr-4"
+                />
+              )}
+              <div className="flex-grow">
+                <h3 className="text-base font-semibold text-gray-900">
+                  {vehicle.brand} {vehicle.affectation} {/* Affiche la marque et l'affectation */}
+                </h3>
+              </div>
+              <div className="flex items-center">
+                <Badge variant={status === 'critical' ? 'destructive' : 'default'}>
+                  {criticalParts > 0 ? `${criticalParts} pièce${criticalParts > 1 ? 's' : ''} critique${criticalParts > 1 ? 's' : ''}` : 'OK'}
+                </Badge>
+                <ChevronRightIcon className="ml-4 h-5 w-5 text-gray-400" />
               </div>
             </div>
           </Link>
-        )
+        );
       })}
     </div>
-  )
+  );
 }

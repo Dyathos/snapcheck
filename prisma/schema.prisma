@@ -6,23 +6,21 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model Vehicle {
   id              String            @id @default(cuid())
   brand           String
-  model           String
-  year            Int
-  mileage         Int
-  plateNumber     String            @map("plate_number")
-  vin             String?
+  affectation     String
+  photo           String?  
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @default(now()) @map("updated_at")
   parts           Part[]
   inspectionVehicles InspectionVehicle[]
   checkInParts    CheckInPart[]
+  maintenanceTasks MaintenanceTask[] // Ajout de la relation avec MaintenanceTask
   healthStatus    String?           // Added healthStatus property
   lastInspection   DateTime?        // Added lastInspection property
 
@@ -33,6 +31,7 @@ model Inspection {
   id          String   @id @default(cuid())
   date        DateTime @default(now())
   inspector   String
+  badge       String?
   status      String   @default("in_progress")
   notes       String?
   createdAt   DateTime @default(now()) @map("created_at")
@@ -40,6 +39,7 @@ model Inspection {
   vehicles    InspectionVehicle[]
 
   @@map("inspections")
+  MaintenanceTask MaintenanceTask[]
 }
 
 model InspectionVehicle {
@@ -56,6 +56,31 @@ model InspectionVehicle {
 
   @@map("inspection_vehicles")
 }
+
+
+model MaintenanceTask {
+  id            String      @id @default(cuid())
+  description   String
+  priority      String      @default("medium")    // Ajout du champ priorité
+  status        String      @default("pending")   
+  assignedTo    String?                          // Ajout de l'assignation
+  startDate     DateTime?                        // Ajout date de début
+  endDate       DateTime?                        // Ajout date de fin
+  notes         String?                          // Ajout des notes
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @default(now()) @map("updated_at")
+  inspection    Inspection? @relation(fields: [inspectionId], references: [id])
+  inspectionId  String?
+  vehicle       Vehicle     @relation(fields: [vehicleId], references: [id]) // Ajout relation véhicule
+  vehicleId     String
+
+  @@map("maintenance_tasks")
+}
+
+
+
+
+
 
 model InspectionPart {
   id                  String            @id @default(cuid())
@@ -144,4 +169,24 @@ model DefaultPart {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("default_parts")
+}
+
+model User {
+  id          Int      @id @default(autoincrement())
+  firstName   String
+  lastName    String
+  department  String? // Optional department field
+  phone       String? // Optional phone field
+  badge       String?
+  password    String
+  role        Role
+  email       String   @unique
+  photo       String?  // Optional
+
+}
+
+enum Role {
+  Inspecteur
+  Maintenance
+  Safety
 }

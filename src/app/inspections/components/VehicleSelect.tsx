@@ -7,9 +7,8 @@ import { Badge } from '@/components/ui/Badge'
 type Vehicle = {
   id: string
   brand: string
-  model: string
-  year: number
-  plateNumber: string
+  affectation: string // Nouvelle propriété ajoutée
+  photo?: string // Propriété optionnelle pour la photo
 }
 
 export function VehicleSelect() {
@@ -20,17 +19,22 @@ export function VehicleSelect() {
 
   useEffect(() => {
     fetch('/api/vehicles')
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Network response was not ok');
+        }
+        return res.json();
+      })
       .then((data) => {
-        setVehicles(data)
-        setLoading(false)
+        setVehicles(data);
+        setLoading(false);
       })
-      .catch((err) => {
-        console.error('Error loading vehicles:', err)
-        setError('Erreur lors du chargement des véhicules')
-        setLoading(false)
-      })
-  }, [])
+      .catch((error) => {
+        console.error('Error fetching vehicles:', error);
+        setError('Erreur lors du chargement des véhicules. Veuillez réessayer plus tard.');
+        setLoading(false);
+      });
+  }, []);
 
   const handleVehicleSelect = (vehicleId: string) => {
     router.push(`/inspections/new/${vehicleId}`)
@@ -90,9 +94,14 @@ export function VehicleSelect() {
             onClick={() => handleVehicleSelect(vehicle.id)}
             className="flex items-center justify-between p-4 bg-white border rounded-lg hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <div>
-              <h3 className="font-medium text-gray-900">{vehicle.brand} {vehicle.model}</h3>
-              <p className="text-sm text-gray-500">{vehicle.plateNumber}</p>
+            <div className="flex items-center">
+              {vehicle.photo && (
+                <img src={vehicle.photo} alt={`${vehicle.brand}`} className="w-16 h-16 mr-4 rounded" />
+              )}
+              <div>
+                <h3 className="font-medium text-gray-900">{vehicle.brand}</h3>
+                <p className="text-sm text-gray-500">Affectation: {vehicle.affectation}</p>
+              </div>
             </div>
           </button>
         ))}

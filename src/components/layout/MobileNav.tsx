@@ -7,44 +7,45 @@ import {
   ClipboardDocumentCheckIcon,
   WrenchScrewdriverIcon,
   Cog6ToothIcon,
+  UserIcon
 } from '@heroicons/react/24/outline'
 import {
   HomeIcon as HomeIconSolid,
   ClipboardDocumentCheckIcon as ClipboardDocumentCheckIconSolid,
   WrenchScrewdriverIcon as WrenchScrewdriverIconSolid,
   Cog6ToothIcon as Cog6ToothIconSolid,
+  UserIcon as UserIconSolid
 } from '@heroicons/react/24/solid'
 import { cn } from '@/lib/utils'
+import { useSession } from 'next-auth/react'
 
-const navItems = [
-  {
-    name: 'Accueil',
-    href: '/',
-    icon: HomeIcon,
-    activeIcon: HomeIconSolid,
-  },
-  {
-    name: 'Véhicules',
-    href: '/vehicles',
-    icon: WrenchScrewdriverIcon,
-    activeIcon: WrenchScrewdriverIconSolid,
-  },
-  {
-    name: 'Inspections',
-    href: '/inspections',
-    icon: ClipboardDocumentCheckIcon,
-    activeIcon: ClipboardDocumentCheckIconSolid,
-  },
-  {
-    name: 'Plus',
-    href: '/settings',
-    icon: Cog6ToothIcon,
-    activeIcon: Cog6ToothIconSolid,
-  },
-]
+const navItemsByRole = {
+  'Safety': [
+    { name: 'Accueil', href: '/', icon: HomeIcon, activeIcon: HomeIconSolid },
+    { name: 'Inventaire', href: '/inventory', icon: WrenchScrewdriverIcon, activeIcon: WrenchScrewdriverIconSolid },
+    { name: 'Utilisateurs', href: '/users', icon: UserIcon, activeIcon: UserIconSolid },
+    { name: 'Paramètres', href: '/settings', icon: Cog6ToothIcon, activeIcon: Cog6ToothIconSolid },
+  ],
+  'Maintenance': [
+    { name: 'Accueil', href: '/', icon: HomeIcon, activeIcon: HomeIconSolid },
+    { name: 'Tâches', href: '/maintenance', icon: WrenchScrewdriverIcon, activeIcon: WrenchScrewdriverIconSolid },
+    { name: 'Véhicules', href: '/vehicles', icon: WrenchScrewdriverIcon, activeIcon: WrenchScrewdriverIconSolid },
+    { name: 'Paramètres', href: '/settings', icon: Cog6ToothIcon, activeIcon: Cog6ToothIconSolid },
+  ],
+  'Inspecteur': [
+    { name: 'Accueil', href: '/', icon: HomeIcon, activeIcon: HomeIconSolid },
+    { name: 'Inspections', href: '/inspections', icon: ClipboardDocumentCheckIcon, activeIcon: ClipboardDocumentCheckIconSolid },
+    { name: 'Véhicules', href: '/vehicles', icon: WrenchScrewdriverIcon, activeIcon: WrenchScrewdriverIconSolid },
+    { name: 'Paramètres', href: '/settings', icon: Cog6ToothIcon, activeIcon: Cog6ToothIconSolid },
+  ]
+}
 
 export default function MobileNav() {
+  const { data: session } = useSession()
   const pathname = usePathname()
+  const role = session?.user?.role || 'Safety'  // Par défaut, utiliser Safety si aucun rôle
+
+  const navItems = navItemsByRole[role] || []
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-700">

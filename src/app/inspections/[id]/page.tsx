@@ -76,12 +76,8 @@ export default async function InspectionPage({
                 <h2 className="text-lg font-medium">Véhicule</h2>
                 <dl className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
-                    <dt className="text-sm font-medium text-gray-500">Marque & Modèle</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{vehicle.brand} {vehicle.model}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-sm font-medium text-gray-500">Plaque</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{vehicle.plateNumber}</dd>
+                    <dt className="text-sm font-medium text-gray-500">Affectation</dt>
+                    <dd className="mt-1 text-sm text-gray-900">{vehicle.brand} {vehicle.affectation}</dd>
                   </div>
                 </dl>
               </div>

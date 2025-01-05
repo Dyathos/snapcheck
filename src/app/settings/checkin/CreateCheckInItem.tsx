@@ -43,23 +43,27 @@ export function CreateCheckInItem() {
   const onSubmit = async (data: FormData) => {
     try {
       setIsSubmitting(true)
-
+  
+      // Ajout de l'heure locale au moment de la soumission
+      const currentTime = new Date().toISOString();
+      console.log('Current local time:', currentTime);
+  
       const response = await fetch('/api/settings/checkin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({...data, submittedAt: currentTime}), // Inclure l'heure de soumission
       })
-
+  
       if (!response.ok) {
         throw new Error('Failed to create check-in item')
       }
-
+  
       // Réinitialiser le formulaire et fermer le modal
       reset()
       setIsOpen(false)
-
+  
       // Rafraîchir la page pour voir les changements
       window.location.reload()
     } catch (error) {

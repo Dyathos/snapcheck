@@ -1,8 +1,28 @@
 import { Suspense } from 'react'
 import { InventoryFilters } from './components/InventoryFilters'
 import { InventoryList } from './components/InventoryList'
+import { prisma } from '@/lib/prisma'
 
-export default function InventoryPage() {
+async function getInventory() {
+  try {
+    const vehicles = await prisma.vehicle.findMany({
+      include: {
+        parts: true
+      },
+      orderBy: {
+        brand: 'asc'
+      }
+    })
+    return vehicles
+  } catch (error) {
+    console.error('Error fetching vehicles:', error)
+    return []
+  }
+}
+
+export default async function InventoryPage() {
+  const vehicles = await getInventory()
+
   return (
     <div className="space-y-6">
       <div>
@@ -25,7 +45,7 @@ export default function InventoryPage() {
 
         <div className="lg:col-span-3">
           <Suspense fallback={<div>Chargement de l&apos;inventaire...</div>}>
-            <InventoryList />
+            <InventoryList vehicles={vehicles} />
           </Suspense>
         </div>
       </div>

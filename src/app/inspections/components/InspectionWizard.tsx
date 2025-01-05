@@ -1,81 +1,98 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { z } from 'zod'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { useSession } from "next-auth/react";
+import { Session } from "next-auth";
+
+interface CustomSession extends Session {
+  user: {
+    role: string;
+    firstName: string;
+    lastName: string;
+    badge: string;
+  } & Session["user"];
+}
 
 type Part = {
-  id: string
-  name: string
-  status: string
-  severity: string
-  description: string | null
-  category: string | null
-  icon: string | null
-  isDefault: boolean
-  vehicleId: string
-  createdAt: Date
-  updatedAt: Date
-}
+  id: string;
+  name: string;
+  status: string;
+  severity: string;
+  description: string | null;
+  category: string | null;
+  icon: string | null;
+  isDefault: boolean;
+  vehicleId: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type Vehicle = {
-  id: string
-  brand: string
-  model: string
-  year: number
-  mileage: number
-  plateNumber: string
-  vin: string | null
-  parts: Part[]
-  healthStatus: string | null
-  lastInspection: Date | null
-  createdAt: Date
-  updatedAt: Date
-}
+  id: string;
+  brand: string;
+  affectation: string;
+  photo: string | null;
+  healthStatus: string | null;
+  lastInspection: Date | null;
+  parts: Part[];
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 type PartInspection = {
-  id: string
-  status: 'good' | 'warning' | 'critical'
-  notes: string
-}
+  id: string;  // Ensure the id field is present
+  status: "good" | "warning" | "critical";
+  notes: string;
+};
 
 const STATUS_LABELS = {
-  good: 'Bon état',
-  warning: 'À surveiller',
-  critical: 'Critique',
-}
+  good: "Bon état",
+  warning: "À surveiller",
+  critical: "Critique",
+};
 
 export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
-  const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [selectedParts, setSelectedParts] = useState<Set<string>>(new Set())
-  const [inspectedParts, setInspectedParts] = useState<Record<string, PartInspection>>({})
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const router = useRouter();
+  const { data: session } = useSession() as { data: CustomSession | null };
+  const [step, setStep] = useState(1);
+  const [selectedParts, setSelectedParts] = useState<Set<string>>(new Set());
+  const [inspectedParts, setInspectedParts] = useState<
+    Record<string, PartInspection>
+  >({});
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Vérification simple de la session et du rôle
+  if (!session?.user || session.user.role !== "Inspecteur") {
+    return <div>Accès réservé aux inspecteurs.</div>;
+  }
 
   // Étape 1 : Sélection des pièces à inspecter
   const SelectPartsStep = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Sélectionnez les pièces à inspecter</h3>
+      <h3 className="text-lg font-medium">
+        Sélectionnez les pièces à inspecter
+      </h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {vehicle.parts.map((part) => (
           <button
             key={part.id}
             onClick={() => {
-              const newSelected = new Set(selectedParts)
+              const newSelected = new Set(selectedParts);
               if (selectedParts.has(part.id)) {
-                newSelected.delete(part.id)
+                newSelected.delete(part.id);
               } else {
-                newSelected.add(part.id)
+                newSelected.add(part.id);
               }
-              setSelectedParts(newSelected)
+              setSelectedParts(newSelected);
             }}
             className={`p-4 border rounded-lg text-left transition-colors ${
               selectedParts.has(part.id)
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? "border-blue-500 bg-blue-50"
+                : "border-gray-200 hover:border-gray-300"
             }`}
           >
             <div className="flex items-center justify-between">
@@ -87,11 +104,11 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
               </div>
               <Badge
                 variant={
-                  part.severity === 'critical'
-                    ? 'destructive'
-                    : part.severity === 'high'
-                    ? 'warning'
-                    : 'default'
+                  part.severity === "critical"
+                    ? "destructive"
+                    : part.severity === "high"
+                    ? "warning"
+                    : "default"
                 }
               >
                 {part.status}
@@ -101,23 +118,22 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
         ))}
       </div>
       <div className="flex justify-end mt-6">
-        <Button
-          onClick={() => setStep(2)}
-          disabled={selectedParts.size === 0}
-        >
+        <Button onClick={() => setStep(2)} disabled={selectedParts.size === 0}>
           Continuer
         </Button>
       </div>
     </div>
-  )
+  );
 
   // Étape 2 : Inspection des pièces sélectionnées
   const InspectPartsStep = () => (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Inspectez les pièces sélectionnées</h3>
+      <h3 className="text-lg font-medium">
+        Inspectez les pièces sélectionnées
+      </h3>
       {Array.from(selectedParts).map((partId) => {
-        const part = vehicle.parts.find((p) => p.id === partId)
-        if (!part) return null
+        const part = vehicle.parts.find((p) => p.id === partId);
+        if (!part) return null;
 
         return (
           <div key={part.id} className="border rounded-lg p-4 space-y-4">
@@ -125,11 +141,11 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
               <h4 className="font-medium">{part.name}</h4>
               <Badge
                 variant={
-                  part.severity === 'critical'
-                    ? 'destructive'
-                    : part.severity === 'high'
-                    ? 'warning'
-                    : 'default'
+                  part.severity === "critical"
+                    ? "destructive"
+                    : part.severity === "high"
+                    ? "warning"
+                    : "default"
                 }
               >
                 État actuel : {part.status}
@@ -141,16 +157,16 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
                 Nouvel état
               </label>
               <select
-                value={inspectedParts[part.id]?.status || 'good'}
+                value={inspectedParts[part.id]?.status || "good"}
                 onChange={(e) => {
                   setInspectedParts({
                     ...inspectedParts,
                     [part.id]: {
-                      ...inspectedParts[part.id],
-                      id: part.id,
-                      status: e.target.value as 'good' | 'warning' | 'critical',
+                      id: part.id,  // Ensure the id is included
+                      status: e.target.value as "good" | "warning" | "critical",
+                      notes: inspectedParts[part.id]?.notes || "",
                     },
-                  })
+                  });
                 }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               >
@@ -165,23 +181,23 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
                 Notes
               </label>
               <textarea
-                value={inspectedParts[part.id]?.notes || ''}
+                value={inspectedParts[part.id]?.notes || ""}
                 onChange={(e) => {
                   setInspectedParts({
                     ...inspectedParts,
                     [part.id]: {
-                      ...inspectedParts[part.id],
-                      id: part.id,
+                      id: part.id,  // Ensure the id is included
+                      status: inspectedParts[part.id]?.status || "good",
                       notes: e.target.value,
                     },
-                  })
+                  });
                 }}
                 rows={2}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
             </div>
           </div>
-        )
+        );
       })}
       <div className="flex justify-between mt-6">
         <Button variant="outline" onClick={() => setStep(1)}>
@@ -195,7 +211,7 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
         </Button>
       </div>
     </div>
-  )
+  );
 
   // Étape 3 : Résumé des changements
   const SummaryStep = () => (
@@ -203,26 +219,24 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
       <h3 className="text-lg font-medium">Résumé des changements</h3>
       <div className="space-y-4">
         {Array.from(selectedParts).map((partId) => {
-          const part = vehicle.parts.find((p) => p.id === partId)
-          const inspection = inspectedParts[partId]
-          if (!part || !inspection) return null
+          const part = vehicle.parts.find((p) => p.id === partId);
+          const inspection = inspectedParts[partId];
+          if (!part || !inspection) return null;
 
           return (
             <div key={part.id} className="border rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <h4 className="font-medium">{part.name}</h4>
                 <div className="flex items-center space-x-2">
-                  <Badge variant="default">
-                    Avant : {part.status}
-                  </Badge>
+                  <Badge variant="default">Avant : {part.status}</Badge>
                   <span className="text-gray-500">→</span>
                   <Badge
                     variant={
-                      inspection.status === 'critical'
-                        ? 'destructive'
-                        : inspection.status === 'warning'
-                        ? 'warning'
-                        : 'success'
+                      inspection.status === "critical"
+                        ? "destructive"
+                        : inspection.status === "warning"
+                        ? "warning"
+                        : "success"
                     }
                   >
                     Après : {STATUS_LABELS[inspection.status]}
@@ -233,80 +247,60 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
                 <p className="mt-2 text-sm text-gray-500">{inspection.notes}</p>
               )}
             </div>
-          )
+          );
         })}
       </div>
       <div className="flex justify-between mt-6">
         <Button variant="outline" onClick={() => setStep(2)}>
           Modifier
         </Button>
-        <Button onClick={() => setStep(4)}>
-          Continuer
-        </Button>
+        <Button onClick={() => setStep(4)}>Continuer</Button>
       </div>
     </div>
-  )
+  );
 
   // Étape 4 : Confirmation finale
   const FinalConfirmationStep = () => {
     const unchangedParts = vehicle.parts.filter(
       (part) => !selectedParts.has(part.id)
-    )
+    );
 
     const handleSubmit = async () => {
       try {
-        setIsSubmitting(true)
-        setError(null)
+        setIsSubmitting(true);
+        setError(null);
 
-        // Préparer les données pour l'API
         const payload = {
+          inspector: `${session.user.firstName} ${session.user.lastName}`,
+          badge: session.user.badge,
           vehicleId: vehicle.id,
-          inspector: 'Inspector Name', // À remplacer par un champ de formulaire
-          status: 'completed',
-          notes: '',
-          parts: [
-            // Pièces modifiées
-            ...Array.from(selectedParts).map((partId) => ({
-              id: partId,
-              status: inspectedParts[partId].status,
-              notes: inspectedParts[partId].notes,
-            })),
-            // Pièces inchangées
-            ...unchangedParts.map((part) => ({
-              id: part.id,
-              status: part.status,
-              notes: '',
-            })),
-          ],
-        }
+          status: "completed",
+          parts: Array.from(selectedParts).map((partId) => ({
+            partId,  // Utiliser partId au lieu de id
+            status: inspectedParts[partId].status,
+            notes: inspectedParts[partId]?.notes || "",
+          })),
+        };
+        
 
-        const response = await fetch('/api/inspections', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        const response = await fetch("/api/inspections", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
-        })
-
-        const result = await response.json()
+        });
 
         if (!response.ok) {
-          throw new Error(result.error || 'Erreur lors de la création de l\'inspection')
+          throw new Error("Erreur lors de la création de l'inspection");
         }
 
-        router.refresh()
-        router.push('/inspections')
+        router.refresh();
+        router.push("/inspections");
       } catch (error) {
-        console.error('Error creating inspection:', error)
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'Une erreur est survenue lors de la création de l\'inspection'
-        )
+        setError(error instanceof Error ? error.message : "Erreur inattendue");
       } finally {
-        setIsSubmitting(false)
+        setIsSubmitting(false);
       }
-    }
+    };
 
     return (
       <div className="space-y-6">
@@ -318,8 +312,8 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
               </h3>
               <div className="mt-2 text-sm text-yellow-700">
                 <p>
-                  {unchangedParts.length} pièces n'ont pas été modifiées. 
-                  Leur état précédent sera conservé.
+                  {unchangedParts.length} pièces n'ont pas été modifiées. Leur
+                  état précédent sera conservé.
                 </p>
               </div>
             </div>
@@ -330,22 +324,19 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
           <h4 className="font-medium">Pièces non modifiées :</h4>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {unchangedParts.map((part) => (
-              <div
-                key={part.id}
-                className="border rounded-lg p-4"
-              >
+              <div key={part.id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <h5 className="font-medium">{part.name}</h5>
                   <Badge
                     variant={
-                      part.status === 'critical'
-                        ? 'destructive'
-                        : part.status === 'warning'
-                        ? 'warning'
-                        : 'success'
+                      part.status === "critical"
+                        ? "destructive"
+                        : part.status === "warning"
+                        ? "warning"
+                        : "success"
                     }
                   >
-                    {STATUS_LABELS[part.status as keyof typeof STATUS_LABELS]}
+                    {part.status}
                   </Badge>
                 </div>
               </div>
@@ -367,19 +358,15 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
             <Button variant="outline" onClick={() => setStep(1)}>
               Ajouter une pièce
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Validation...' : 'Valider l\'inspection'}
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Validation..." : "Valider l'inspection"}
             </Button>
           </div>
         </div>
       </div>
-    )
-  }
+    );
+  };
 
-  // Afficher l'étape appropriée
   return (
     <div className="space-y-6">
       <div className="border-b pb-4">
@@ -389,28 +376,28 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
               key={stepNumber}
               className={`flex items-center ${
                 stepNumber === step
-                  ? 'text-blue-600'
+                  ? "text-blue-600"
                   : stepNumber < step
-                  ? 'text-gray-500'
-                  : 'text-gray-300'
+                  ? "text-gray-500"
+                  : "text-gray-300"
               }`}
             >
               <span
                 className={`w-8 h-8 flex items-center justify-center rounded-full ${
                   stepNumber === step
-                    ? 'bg-blue-600 text-white'
+                    ? "bg-blue-600 text-white"
                     : stepNumber < step
-                    ? 'bg-gray-500 text-white'
-                    : 'bg-gray-200'
+                    ? "bg-gray-500 text-white"
+                    : "bg-gray-200"
                 }`}
               >
                 {stepNumber}
               </span>
               <span className="ml-2 text-sm font-medium">
-                {stepNumber === 1 && 'Sélection'}
-                {stepNumber === 2 && 'Inspection'}
-                {stepNumber === 3 && 'Résumé'}
-                {stepNumber === 4 && 'Validation'}
+                {stepNumber === 1 && "Sélection"}
+                {stepNumber === 2 && "Inspection"}
+                {stepNumber === 3 && "Résumé"}
+                {stepNumber === 4 && "Validation"}
               </span>
             </div>
           ))}
@@ -422,5 +409,5 @@ export function InspectionWizard({ vehicle }: { vehicle: Vehicle }) {
       {step === 3 && <SummaryStep />}
       {step === 4 && <FinalConfirmationStep />}
     </div>
-  )
+  );
 }

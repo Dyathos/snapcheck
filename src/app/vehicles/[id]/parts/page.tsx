@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import SelectParts from './SelectParts'
-import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const dynamic = 'force-dynamic'
@@ -39,7 +38,7 @@ export default async function VehiclePartsPage({
       <div className="container mx-auto py-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">
-            Pièces du véhicule - {vehicle.brand} {vehicle.model}
+            Pièces du véhicule - {vehicle.brand} {vehicle.affectation}
           </h1>
         </div>
 

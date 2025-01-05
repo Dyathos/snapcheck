@@ -1,141 +1,138 @@
-'use client'
+'use client';
 
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Label } from '@/components/ui/Label'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Label } from '@/components/ui/Label';
+import { XCircle } from 'lucide-react';
 
-const vehicleSchema = z.object({
-  brand: z.string().min(1, 'La marque est requise'),
-  model: z.string().min(1, 'Le modèle est requis'),
-  year: z.string().transform((val) => parseInt(val, 10))
-    .refine((val) => !isNaN(val) && val > 1900 && val <= new Date().getFullYear(), {
-      message: "L'année doit être valide"
-    }),
-  mileage: z.string().transform((val) => parseInt(val, 10))
-    .refine((val) => !isNaN(val) && val >= 0, {
-      message: 'Le kilométrage doit être un nombre positif'
-    }),
-  plateNumber: z.string().min(1, "La plaque d'immatriculation est requise"),
-  vin: z.string().optional(),
-})
+interface VehicleFormProps {
+  onSuccess?: () => void;
+}
 
-type VehicleFormData = z.infer<typeof vehicleSchema>
+interface FormData {
+  brand: string;
+  affectation: string;
+}
 
-export default function VehicleForm() {
-  const router = useRouter()
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    setError,
-  } = useForm<VehicleFormData>({
-    resolver: zodResolver(vehicleSchema),
-  })
+export function VehicleForm({ onSuccess }: VehicleFormProps) {
+  const router = useRouter();
+  const [formData, setFormData] = useState<FormData>({
+    brand: '',
+    affectation: '',
+  });
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(data: VehicleFormData) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+
     try {
-      const response = await fetch('/api/vehicles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...data,
-          year: data.year.toString(),
-          mileage: data.mileage.toString(),
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Erreur réseau')
+      const formDataToSend = new FormData();
+      formDataToSend.append('brand', formData.brand);
+      formDataToSend.append('affectation', formData.affectation);
+      if (photo) {
+        formDataToSend.append('photo', photo);
       }
 
-      router.push('/vehicles')
-      router.refresh()
-    } catch (error) {
-      console.error('Error creating vehicle:', error)
-      setError('root', {
-        type: 'manual',
-        message: 'Une erreur est survenue lors de la création du véhicule.',
-      })
+      const response = await fetch('/api/vehicles', {
+        method: 'POST',
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Erreur lors de la création du véhicule');
+      }
+
+      setFormData({ brand: '', affectation: '' });
+      setPhoto(null);
+      router.refresh();
+      onSuccess?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } finally {
+      setIsSubmitting(false);
     }
-  }
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) {
+      setPhoto(e.target.files[0]);
+    }
+  };
+
+  const ImagePreview = () => {
+    if (!photo) return null;
+
+    return (
+      <div className="relative mt-2 inline-block">
+        <Image
+          src={URL.createObjectURL(photo)}
+          alt="Aperçu"
+          width={200}
+          height={200}
+          className="rounded-lg object-cover"
+        />
+        <Button
+          type="button"
+          variant="destructive"
+          size="icon"
+          className="absolute -top-2 -right-2"
+          onClick={() => setPhoto(null)}
+        >
+          <XCircle className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="brand">Marque</Label>
-          <Input
-            id="brand"
-            type="text"
-            {...register('brand')}
-            error={errors.brand?.message}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="model">Modèle</Label>
-          <Input
-            id="model"
-            type="text"
-            {...register('model')}
-            error={errors.model?.message}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="year">Année</Label>
-          <Input
-            id="year"
-            type="number"
-            {...register('year')}
-            error={errors.year?.message}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="mileage">Kilométrage</Label>
-          <Input
-            id="mileage"
-            type="number"
-            {...register('mileage')}
-            error={errors.mileage?.message}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="plateNumber">Plaque d'immatriculation</Label>
-          <Input
-            id="plateNumber"
-            type="text"
-            {...register('plateNumber')}
-            error={errors.plateNumber?.message}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="vin">Numéro de série (VIN)</Label>
-          <Input
-            id="vin"
-            type="text"
-            {...register('vin')}
-            error={errors.vin?.message}
-          />
-        </div>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <Label htmlFor="brand">Marque</Label>
+        <Input
+          id="brand"
+          value={formData.brand}
+          onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+          required
+        />
       </div>
-
-      {errors.root && (
-        <div className="text-sm text-red-500">{errors.root.message}</div>
+      <div>
+        <Label htmlFor="affectation">Affectation</Label>
+        <Input
+          id="affectation"
+          value={formData.affectation}
+          onChange={(e) => setFormData({ ...formData, affectation: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label htmlFor="photo">Photo</Label>
+        <Input
+          id="photo"
+          type="file"
+          accept="image/*"
+          onChange={handlePhotoChange}
+          className="mt-1"
+        />
+        {photo && <ImagePreview />}
+      </div>
+      {error && (
+        <div className="text-sm text-red-500">
+          {error}
+        </div>
       )}
-
-      <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Création...' : 'Créer le véhicule'}
-      </Button>
+      <div className="flex justify-end space-x-2">
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? 'Création...' : 'Créer'}
+        </Button>
+      </div>
     </form>
-  )
+  );
 }

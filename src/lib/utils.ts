@@ -40,3 +40,19 @@ export function getSeverityColor(severity: string) {
       return 'bg-gray-100 text-gray-800'
   }
 }
+
+import { FieldError, Merge, FieldErrorsImpl } from 'react-hook-form';
+
+export const getErrorMessage = (
+  error: FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined
+): string | undefined => {
+  if (!error) return undefined;
+  const errorMessage = error;
+  if (typeof errorMessage === 'string') {
+    return errorMessage;
+  } else if (errorMessage && 'message' in errorMessage && typeof errorMessage.message === 'string') {
+    return errorMessage.message;
+  } else {
+    return undefined;
+  }
+};

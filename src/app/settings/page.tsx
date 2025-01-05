@@ -1,75 +1,81 @@
-import Header from '@/components/layout/Header'
+"use client";
 
-export default function SettingsPage() {
+import { Cog, User, ClipboardCheck, LogOut, ChevronRightIcon } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
+
+const settingsSections = [
+  {
+    id: 'profile',
+    label: 'Mon Profil',
+    href: '/settings/me',
+    icon: User,
+  },
+  {
+    id: 'checkin',
+    label: 'Pièces',
+    href: '/settings/checkin',
+    icon: ClipboardCheck,
+  },
+  {
+    id: 'preferences',
+    label: 'Préférences',
+    href: '/settings/preferences',
+    icon: Cog,
+  },
+];
+
+export default function SettingsLayout() {
+  const pathname = usePathname();
+
   return (
-    <>
-      <Header title="Paramètres" />
-      
-      <div className="p-4 space-y-6">
-        <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
-          <div className="p-4">
-            <h3 className="text-lg font-medium text-gray-900">Général</h3>
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Langue
-                </label>
-                <select
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                >
-                  <option value="fr">Français</option>
-                  <option value="en">English</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Thème
-                </label>
-                <select
-                  className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                >
-                  <option value="light">Clair</option>
-                  <option value="dark">Sombre</option>
-                  <option value="system">Système</option>
-                </select>
-              </div>
-            </div>
-          </div>
+    <div>
+      <div className="divide-y divide-gray-200">
+        {settingsSections.map((section) => {
+          const Icon = section.icon;
+          const isActive = pathname === section.href;
 
-          <div className="p-4">
-            <h3 className="text-lg font-medium text-gray-900">Notifications</h3>
-            <div className="mt-4 space-y-4">
-              <div className="flex items-start">
-                <div className="flex items-center h-5">
-                  <input
-                    id="notifications"
-                    name="notifications"
-                    type="checkbox"
-                    className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                  />
+          return (
+            <Link
+              key={section.id}
+              href={section.href}
+              className="block hover:bg-gray-50"
+            >
+              <div className="px-4 py-4 flex justify-between items-center">
+                <div className="ml-4 flex gap-2 items-center">
+                  <Icon className={`h-5 w-5 ${
+                    isActive ? 'text-blue-500' : 'text-gray-500'
+                  }`} />
+                  <h3 className="text-base font-semibold text-gray-900">
+                    {section.label}
+                  </h3>
                 </div>
-                <div className="ml-3 text-sm">
-                  <label htmlFor="notifications" className="font-medium text-gray-700">
-                    Activer les notifications
-                  </label>
-                  <p className="text-gray-500">
-                    Recevez des notifications pour les inspections à venir et les alertes importantes.
-                  </p>
+                <div className="flex items-center">
+                  <ChevronRightIcon className="ml-4 h-5 w-5 text-gray-400" />
                 </div>
               </div>
-            </div>
-          </div>
+            </Link>
+          );
+        })}
 
-          <div className="p-4">
-            <h3 className="text-lg font-medium text-gray-900">À propos</h3>
-            <div className="mt-4 text-sm text-gray-500">
-              <p>CarCheck v1.0.0</p>
-              <p className="mt-2">© 2024 CarCheck. Tous droits réservés.</p>
+        <button
+          onClick={() => signOut()}
+          className="w-full"
+        >
+          <div className="px-4 py-4 flex justify-between items-center hover:bg-red-50">
+            <div className="ml-4 flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-red-500" />
+              <h3 className="text-base font-semibold text-red-600">
+                Déconnexion
+              </h3>
+            </div>
+            <div className="flex items-center">
+              <ChevronRightIcon className="h-5 w-5 text-red-400" />
             </div>
           </div>
-        </div>
+        </button>
       </div>
-    </>
-  )
+    </div>
+  );
 }

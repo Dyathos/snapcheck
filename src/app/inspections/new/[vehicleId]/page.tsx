@@ -1,28 +1,34 @@
-import { notFound } from 'next/navigation'
-import Header from '@/components/layout/Header'
-import { prisma } from '@/lib/prisma'
-import { InspectionWizard } from '../../components/InspectionWizard'
+import { notFound } from 'next/navigation';
+import Header from '@/components/layout/Header';
+import { prisma } from '@/lib/prisma';
+import { InspectionWizard } from '../../components/InspectionWizard';
 
 export default async function NewVehicleInspectionPage({
   params,
 }: {
   params: { vehicleId: string }
 }) {
+  // Await the params to ensure they are resolved
+  const { vehicleId } = await params;
+
+  // Fetch the vehicle from the database
   const vehicle = await prisma.vehicle.findUnique({
-    where: { id: params.vehicleId },
+    where: { id: vehicleId },
     include: {
       parts: true,
     },
-  })
+  });
 
+  // If the vehicle is not found, trigger a 404 page
   if (!vehicle) {
-    notFound()
+    notFound();
   }
 
+  // Render the component if the vehicle is found
   return (
     <>
       <Header 
-        title={`Inspection de ${vehicle.brand} ${vehicle.model}`}
+        title={`Inspection de ${vehicle.brand} ${vehicle.affectation}`}
         showBack
       />
       
@@ -34,5 +40,5 @@ export default async function NewVehicleInspectionPage({
         </div>
       </div>
     </>
-  )
+  );
 }

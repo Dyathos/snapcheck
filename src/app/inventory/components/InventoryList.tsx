@@ -4,125 +4,132 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { getHealthStatusColor, formatDate } from '@/lib/utils'
-import { PrismaClient } from '@prisma/client';
-import { prisma } from '@/lib/prisma'
+import { ClipboardCheckIcon, WrenchIcon, AlertTriangle, Calendar } from 'lucide-react'
 
-async function getInventory(searchParams: URLSearchParams) {
-  let whereClause: any = {}
-
-  const health = searchParams.get('health')
-  const severity = searchParams.get('severity')
-  const notInspected = searchParams.get('notInspected')
-
-  if (health) {
-    whereClause.health_status = health
-  }
-  if (severity) {
-    whereClause.parts = {
-      some: {
-        severity: severity
-      }
-    }
-  }
-  if (notInspected === 'true') {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    whereClause.last_inspection = {
-      lt: today.toISOString()
-    }
-  }
-
-  try {
-    try {
-      const vehicles = await prisma.vehicle.findMany({
-        include: {
-          parts: true
-        },
-        where: whereClause,
-        orderBy: {
-          brand: 'asc'
-        }
-      })
-
-      return vehicles
-    } catch (error) {
-      console.error('Error fetching vehicles:', error)
-      throw new Error('Failed to fetch vehicles')
-    }
-  } catch (error) {
-    console.error('Error fetching vehicles:', error)
-    throw new Error('Failed to fetch vehicles')
-  }
+interface Part {
+  id: string
+  name: string
+  status: string
+  severity: string
 }
 
-export async function InventoryList() {
+interface Vehicle {
+  id: string
+  brand: string
+  affectation: string
+  healthStatus: string | null
+  lastInspection: Date | null
+  photo: string | null
+  parts: Part[]
+}
+
+interface InventoryListProps {
+  vehicles: Vehicle[]
+}
+
+export function InventoryList({ vehicles }: InventoryListProps) {
   const searchParams = useSearchParams()
-  const inventory = await getInventory(new URLSearchParams(Object.fromEntries(searchParams)))
+  const health = searchParams.get('health')
+  const severity = searchParams.get('severity')
+  const notInspected = searchParams.get('notInspected') === 'true'
+
+  const filteredVehicles = vehicles.filter(vehicle => {
+    if (health && vehicle.healthStatus !== health) return false
+    if (severity && !vehicle.parts.some(part => part.severity === severity)) return false
+    if (notInspected) {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (vehicle.lastInspection && new Date(vehicle.lastInspection) >= today) return false
+    }
+    return true
+  })
 
   return (
-    <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">
-      {inventory.map((vehicle) => (
-        <div key={vehicle.id} className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h3 className="text-lg font-medium text-gray-900">
-                {vehicle.brand}
-              </h3>
-              <p className="text-sm text-gray-500">{vehicle.brand}</p>
-            </div>
-            <Badge className={getHealthStatusColor(vehicle.healthStatus || 'defaultStatus')}>
-              {vehicle.healthStatus}
-            </Badge>
-          </div>
+    <div className="space-y-4">
+      {filteredVehicles.map((vehicle) => {
+        const criticalParts = vehicle.parts.filter(part => part.severity === 'critical')
+        const warningParts = vehicle.parts.filter(part => part.severity === 'high')
 
-          <div className="mt-4">
-          <div className="text-sm text-gray-500">
-            <p>Dernière inspection: {vehicle.lastInspection ? formatDate(vehicle.lastInspection) : 'Non inspecté'}</p>
-          </div>
+        return (
+          <Card key={vehicle.id} className="hover:shadow-lg transition-shadow duration-200">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between">
+                {vehicle.photo && (
+                  <img
+                    src={vehicle.photo}
+                    alt={`${vehicle.brand} ${vehicle.affectation}`} // Utilisation de 'affectation' pour le texte alternatif
+                    className="w-16 h-16 rounded-md object-cover mr-4"
+                  />
+                )}
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    {vehicle.brand}
+                  </h3>
+                  <p className="text-sm text-gray-500">{vehicle.affectation}</p>
+                </div>
+                <Badge className={getHealthStatusColor(vehicle.healthStatus || 'defaultStatus')}>
+                  {vehicle.healthStatus}
+                </Badge>
+              </div>
+            </CardHeader>
 
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center text-sm text-gray-500">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Dernière inspection: {vehicle.lastInspection ? formatDate(vehicle.lastInspection) : 'Non inspecté'}
+                </div>
 
-            {vehicle.parts && vehicle.parts.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-900">
-                  Problèmes détectés
-                </h4>
-                <div className="mt-2 space-y-2">
-                  {vehicle.parts
-                    .filter((part) => part.status === 'issue')
-                    .map((part) => (
-                      <div
-                        key={part.id}
-                        className="flex items-center justify-between"
-                      >
-                        <span className="text-sm text-gray-500">
-                          {part.name}
+                {(criticalParts.length > 0 || warningParts.length > 0) && (
+                  <div className="space-y-2">
+                    {criticalParts.length > 0 && (
+                      <div className="flex items-center gap-2 text-red-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm">
+                          {criticalParts.length} pièce{criticalParts.length > 1 ? 's' : ''} critique{criticalParts.length > 1 ? 's' : ''}
                         </span>
-                        <Badge className={getHealthStatusColor(part.severity || 'defaultStatus')}>
-                          {part.severity}
-                        </Badge>
                       </div>
-                    ))}
+                    )}
+                    {warningParts.length > 0 && (
+                      <div className="flex items-center gap-2 text-orange-600">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="text-sm">
+                          {warningParts.length} pièce{warningParts.length > 1 ? 's' : ''} à surveiller
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex gap-3 pt-2">
+                  <Link href={`/vehicles/${vehicle.id}`} className="flex-1">
+                    <Button variant="outline" className="w-full">
+                      <WrenchIcon className="h-4 w-4 mr-2" />
+                      Détails
+                    </Button>
+                  </Link>
+                  <Link href={`/inspections/new/${vehicle.id}`} className="flex-1">
+                    <Button className="w-full">
+                      <ClipboardCheckIcon className="h-4 w-4 mr-2" />
+                      Inspecter
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
+        )
+      })}
 
-          <div className="mt-6 flex space-x-4">
-            <Link href={`/vehicles/${vehicle.id}`}>
-              <Button variant="outline">Voir les détails</Button>
-            </Link>
-            <Link href={`/inspections/new/${vehicle.id}`}>
-              <Button>Nouvelle inspection</Button>
-            </Link>
-          </div>
-        </div>
-      ))}
-
-      {inventory.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Aucun véhicule ne correspond aux critères</p>
-        </div>
+      {filteredVehicles.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <AlertTriangle className="h-12 w-12 text-gray-400 mb-4" />
+            <p className="text-gray-500 text-lg">Aucun véhicule ne correspond aux critères</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

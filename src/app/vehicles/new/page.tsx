@@ -1,5 +1,5 @@
 import Header from '@/components/layout/Header'
-import VehicleForm from '../components/VehicleForm'
+import { VehicleForm } from '../components/VehicleForm'
 
 export default function NewVehiclePage() {
   return (

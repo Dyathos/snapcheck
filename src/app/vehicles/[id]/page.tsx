@@ -1,10 +1,13 @@
+// app/vehicles/[id]/page.tsx
+
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import Header from '@/components/layout/Header'
 import { prisma } from '@/lib/prisma'
 import { Badge } from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
 import { ClipboardDocumentCheckIcon, WrenchIcon } from '@heroicons/react/24/outline'
+import { EditVehicle } from '../components/EditVehicle'
+import AppLayout from '@/components/layout/AppLayout'
 
 async function getVehicle(id: string) {
   const vehicle = await prisma.vehicle.findUnique({
@@ -45,36 +48,10 @@ export default async function VehiclePage({
 
   return (
     <>
-      <Header
-        title={`${vehicle.brand} ${vehicle.model}`}
-        showBack
-      />
-      
-      <div className="p-4 space-y-6">
-        <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
-          {/* Informations générales */}
-          <div className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-medium text-gray-900">
-                  {vehicle.brand} {vehicle.model}
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  {vehicle.year} • {vehicle.plateNumber}
-                </p>
-              </div>
-              <div className="flex items-center space-x-2">
-                {criticalParts > 0 && (
-                  <Badge variant="destructive">
-                    {criticalParts} pièce{criticalParts > 1 ? 's' : ''} critique{criticalParts > 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="p-4">
+    <AppLayout title={`${vehicle.brand} ${vehicle.affectation}`}
+        showBack>
+      {/* Actions */}
+      <div className="p-4">
             <div className="flex space-x-4">
               <Link
                 href={`/inspections/new/${vehicle.id}`}
@@ -90,9 +67,41 @@ export default async function VehiclePage({
                 <WrenchIcon className="h-5 w-5 mr-2" />
                 Gérer les pièces
               </Link>
+              <EditVehicle vehicleId={vehicle.id} initialData={{
+                brand: vehicle.brand,
+                affectation: vehicle.affectation
+              }}/>
             </div>
           </div>
 
+      <div className="p-4 space-y-6">
+        <div className="bg-white shadow rounded-lg divide-y divide-gray-200">
+          {/* Informations générales */}
+          <div className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-medium text-gray-900">
+                  {vehicle.brand} {vehicle.affectation}
+                </h2>
+                {vehicle.photo && (
+                <img
+                  src={vehicle.photo}
+                  alt={`${vehicle.brand} ${vehicle.affectation}`} // Utilisation de 'affectation' pour le texte alternatif
+                  className="w-16 h-16 rounded-md object-cover mr-4"
+                />
+              )}
+              </div>
+              <div className="flex items-center space-x-2">
+                {criticalParts > 0 && (
+                  <Badge variant="destructive">
+                    {criticalParts} pièce{criticalParts > 1 ? 's' : ''} critique{criticalParts > 1 ? 's' : ''}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+
+          
           {/* Historique des inspections */}
           <div className="p-4">
             <h3 className="text-lg font-medium text-gray-900 mb-4">
@@ -139,6 +148,7 @@ export default async function VehiclePage({
           </div>
         </div>
       </div>
+      </AppLayout>
     </>
   )
 }

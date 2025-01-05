@@ -1,93 +1,41 @@
-import prisma from './client'
+const prismaDb = new (require("@prisma/client").PrismaClient)();
+const { standardParts } = require("./seed-parts");
 
-async function mainSeed() {
-  // Créer un véhicule de test
-  const vehicle = await prisma.vehicle.create({
+async function main() {
+  console.log("Début du seed...");
+
+  // Créer d'abord un véhicule par défaut
+  const defaultVehicle = await prismaDb.vehicle.create({
     data: {
-      brand: 'Renault',
-      model: 'Clio',
-      year: 2020,
-      mileage: 50000,
-      plateNumber: 'AA-123-BB',
-      vin: 'VF1RFB00066666666',
+      brand: "Véhicule par défaut",
+      affectation: "Template",
+      healthStatus: "good",
     },
-  })
+  });
 
-  // Créer quelques pièces pour le véhicule
-  const [huileMoteur, plaquettesAvant, pneusAvant] = await Promise.all([
-    prisma.part.create({
+  // Créer les pièces en les liant au véhicule par défaut
+  for (const part of standardParts) {
+    await prismaDb.part.create({
       data: {
-        vehicleId: vehicle.id,
-        name: 'Huile moteur',
-        status: 'good',
-        severity: 'low',
-        category: 'Moteur',
-        icon: '🛢️',
-        description: 'Niveau et qualité de l\'huile moteur',
-      },
-    }),
-    prisma.part.create({
-      data: {
-        vehicleId: vehicle.id,
-        name: 'Plaquettes avant',
-        status: 'warning',
-        severity: 'medium',
-        category: 'Freins',
-        icon: '🛑',
-        description: 'État des plaquettes de frein avant',
-      },
-    }),
-    prisma.part.create({
-      data: {
-        vehicleId: vehicle.id,
-        name: 'Pneus avant',
-        status: 'critical',
-        severity: 'high',
-        category: 'Pneumatiques',
-        icon: '🛞',
-        description: 'État et pression des pneus avant',
-      },
-    }),
-  ])
-
-  // Créer une inspection de test
-  const inspection = await prisma.inspection.create({
-    data: {
-      inspector: 'Jean Dupont',
-      status: 'completed',
-      notes: 'Inspection initiale',
-      vehicles: {
-        create: {
-          vehicleId: vehicle.id,
-          status: 'good',
-          notes: 'RAS',
-          parts: {
-            create: [
-              {
-                partId: huileMoteur.id,
-                status: 'good',
-                notes: 'Niveau correct',
-              },
-              {
-                partId: plaquettesAvant.id,
-                status: 'warning',
-                notes: 'À changer prochainement',
-              },
-            ],
+        ...part,
+        status: "good",
+        vehicle: {
+          connect: {
+            id: defaultVehicle.id,
           },
         },
       },
-    },
-  })
+    });
+  }
 
-  console.log('Seed data created successfully')
+  console.log("Seed terminé !");
 }
 
-mainSeed()
+main()
   .catch((e) => {
-    console.error('Error seeding database:', e)
-    process.exit(1)
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prismaDb.$disconnect();
+  });
